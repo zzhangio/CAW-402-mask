@@ -18,9 +18,9 @@ This proves CAW's role in agent fund authority before integrating it into the x4
 
 ```text
 caw version: v0.2.86
-wallet_id: 7546a0eb-48b3-4388-8a88-fd71a3700b0d
-EVM address: 0x8bf7aee000ccd484c7343346cd7666f52fde9e13
-SOL address: CTYBv9uhk3ukZaQhJ5NxMpSp2pNzkt9tHfyWPC7k64qk
+wallet_id: [redacted: demo wallet identifier]
+EVM address: [redacted: demo wallet address]
+SOL address: [redacted: demo wallet address]
 ```
 
 ## Smoke Test Command
@@ -28,7 +28,7 @@ SOL address: CTYBv9uhk3ukZaQhJ5NxMpSp2pNzkt9tHfyWPC7k64qk
 Run from the Ubuntu WSL prompt:
 
 ```bash
-cd "/mnt/d/Zuocheng/zuocheng Zhang/personal/web3/ethpanda"
+cd "/path/to/workspace"
 bash hackathon/caw-pact-smoke-test.sh
 ```
 

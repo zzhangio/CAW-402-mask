@@ -287,7 +287,7 @@ CAW-funded px402 is the combined target.
 1. Restart WSL bridge:
 
 ```bash
-cd "/mnt/d/Zuocheng/zuocheng Zhang/personal/web3/ethpanda"
+cd "/path/to/workspace"
 bash hackathon/caw-wsl-bridge.sh
 ```
 

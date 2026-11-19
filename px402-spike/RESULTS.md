@@ -108,7 +108,7 @@ Attempt:
 ```text
 Base mainnet
 depositFast(0.01 USDC)
-wallet: 0x2fb65E4a76A6086228F83C8FA7B1bD1EeA092a63
+wallet: [redacted: demo wallet address]
 ```
 
 Result:
@@ -149,7 +149,7 @@ Attempt:
 ```text
 Base mainnet
 depositFast(0.01 USDC)
-wallet: 0x2fb65E4a76A6086228F83C8FA7B1bD1EeA092a63
+wallet: [redacted: demo wallet address]
 Base ETH before attempt: 0.000006096677281306
 ```
 
@@ -194,7 +194,7 @@ The minimum private deposit succeeded:
 depositFast(0.01 USDC)
 note balance after deposit: 0.01 USDC
 encrypted note:
-D:\Zuocheng\zuocheng Zhang\personal\web3\ethpanda\hackathon\px402-spike\notes\px402-note-1780834973807.json
+<workspace>\hackathon\px402-spike\notes\px402-note-1780834973807.json
 ```
 
 The first private x402 weather call completed but the Node process did not exit cleanly because
@@ -212,12 +212,12 @@ exit after successful output. A second private x402 weather call succeeded:
 HTTP status: 200
 note balance before: 0.008 USDC
 note balance after:  0.006 USDC
-x402 payer: 0xC59F80B58B42D42546dF710691Ee5f8726c65aEC
-x402 payment tx: 0x5501dbf77e8d0485046bc5a12e20b96de9cc4c926f46b138afc7e2584cb31768
+x402 payer: [redacted: demo wallet address]
+x402 payment tx: [redacted: demo transaction hash]
 updated note:
-D:\Zuocheng\zuocheng Zhang\personal\web3\ethpanda\hackathon\px402-spike\notes\px402-note-updated-1780836551557.json
+<workspace>\hackathon\px402-spike\notes\px402-note-updated-1780836551557.json
 response:
-D:\Zuocheng\zuocheng Zhang\personal\web3\ethpanda\hackathon\px402-spike\notes\px402-weather-response-1780836551540.json
+<workspace>\hackathon\px402-spike\notes\px402-weather-response-1780836551540.json
 ```
 
 Weather response:
@@ -310,8 +310,8 @@ Result:
 
 ```text
 status: confirmed
-0x trade hash: 0x955ae8a61de76d3b01156807603d8b8213dd5f43c85f2a3c04d11b793072b3e0
-transaction hash: 0xb243cfe7c717645b0fbeb3be115734c0ae45188b6eb8af961a01365d8f907b50
+0x trade hash: [redacted: demo transaction hash]
+transaction hash: [redacted: demo transaction hash]
 ```
 
 Wallet balance after the 0x Gasless test:

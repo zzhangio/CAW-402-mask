@@ -21,11 +21,7 @@ Cobo Agentic Wallet
   -> receipt, audit, recovery, and residual-fund policy
 ```
 
-The more general x402 product path lives in:
-
-```text
-https://github.com/zuochengzhangzju-byte/claw-idea-inbox
-```
+The general x402 product path is documented in `PRIVACY_X402_ADAPTER_SPEC.md`.
 
 ## What It Demonstrates
 

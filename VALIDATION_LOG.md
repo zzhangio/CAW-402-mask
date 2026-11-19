@@ -33,7 +33,7 @@ Result:
 ```text
 status: 200
 payment success: true
-transaction: 0xf82abef150dfa5b063834e400c9707d697e7a7d335c05ee67b799d47903537fd
+transaction: [redacted: demo transaction hash]
 lat/lon: 22.319859, 114.198555
 temperature: 26.5 C
 humidity: 90%
@@ -230,15 +230,15 @@ Failure recovery:
 dry-run recovery found failed Exa burner balance: 0.007 USDC
 dry-run recovery found failed CMC burner balance: 0.01 USDC
 CMC recovery sweep: success
-tx: 0x698729f22dfb801a1438e68519696c579c1a03ecc99b18398f44a0db9b06fa40
+tx: [redacted: demo transaction hash]
 Exa recovery sweep: success
-tx: 0xa6188842d9c38d477447dec56ec523687c5b6337ad69a5937c33222e3038a884
+tx: [redacted: demo transaction hash]
 ```
 
 Final doctor state:
 
 ```text
-wallet: 0x2fb65E4a76A6086228F83C8FA7B1bD1EeA092a63
+wallet: [redacted: demo wallet address]
 Base ETH: 0.000651802235875848
 Base USDC: 3.403
 latest note balance: 0.022 USDC
@@ -290,9 +290,9 @@ Nansen netflow purchase:
 ```text
 status: 200
 price: 0.05 USDC
-payer: 0x93A0bB47Ac867322eaF0fAA22A796f45e2A8A9a7
+payer: [redacted: demo wallet address]
 payTo: 0x93053f1e7A5eFEDa532Fe69CbbE43cBEc3A0F13f
-paymentTx: 0x86377f36d2c9bfec23e79d3ed4041a1e38bd005c87f55c2a34fb925e09d896ba
+paymentTx: [redacted: demo transaction hash]
 receipt: data/receipts-nansen/receipt-1781109373440-nansen_netflow.json
 response: data/responses-nansen/response-1781109373422-nansen_netflow.json
 note balance: 0.1 -> 0.05 USDC
@@ -313,9 +313,9 @@ Nansen holdings purchase:
 ```text
 status: 200
 price: 0.05 USDC
-payer: 0x730396fbAD3cc6b8C763BBc68B184782aA21E7d8
+payer: [redacted: demo wallet address]
 payTo: 0x93053f1e7A5eFEDa532Fe69CbbE43cBEc3A0F13f
-paymentTx: 0xff16e3cd099ef13c0f0017c107ea5abdd8d59cd2d94481a732c7cd74f9a6a9fa
+paymentTx: [redacted: demo transaction hash]
 run log: data/run-logs/20260611-0317031-nansen-97b9f5bd.jsonl
 receipt: data/receipts-nansen/receipt-1781148011376-nansen_holdings.json
 response: data/responses-nansen/response-1781148011356-nansen_holdings.json
@@ -366,7 +366,7 @@ Complete the px402-private path without relying on the CAW WSL bridge:
 Configuration:
 
 ```text
-CAW EVM address: 0x8bf7aee000ccd484c7343346cd7666f52fde9e13
+CAW EVM address: [redacted: demo wallet address]
 isolated note dir: data/notes-caw-return
 isolated recovery dir: data/recovery-caw-return
 isolated receipt dir: data/receipts-caw-return
@@ -380,7 +380,7 @@ resource: https://api.nansen.ai/api/v1/smart-money/netflow
 price: 0.05 USDC
 note balance: 0.1 -> 0.05 USDC
 status: 200
-paymentTx: 0xa2a97bddd890cdae6b23af02c8df25c6dbe0419e1188d7f522ccc9ff56250aed
+paymentTx: [redacted: demo transaction hash]
 run log: data/run-logs/20260612-0759073-nansen-10825337.jsonl
 receipt: data/receipts-caw-return/receipt-1781251343431-nansen_netflow.json
 response: data/responses-caw-return/response-1781251343412-nansen_netflow.json
@@ -395,18 +395,18 @@ Return path:
 first command: npm run privacy -- return:caw --execute
 result: private withdrawal succeeded, immediate burner balance check read 0 USDC
 recovery file: data/recovery-caw-return/recovery-1781251469881.json
-private withdrawal tx: 0xfba06ae7cd17f474e7b54cd05578408df796983d30fceb2e13e3440aaabf56f5
-burner: 0xE724B254C4A33C0149eC9Ee5a5745D19B3ad4593
+private withdrawal tx: [redacted: demo transaction hash]
+burner: [redacted: demo wallet address]
 
 recovery dry-run after short delay:
 burner balance: 0.05 USDC
-destination: 0x8bf7aee000ccd484c7343346cd7666f52fde9e13
+destination: [redacted: demo wallet address]
 
 recovery execute:
 command: npm run privacy -- recover:sweep --file data/recovery-caw-return/recovery-1781251469881.json --to-caw --execute
 status: success
 amount: 0.05 USDC
-sweep tx: 0x80fdd3973cc49d0e8ac8e76a3143b92699def78eca04498782240bf18c0fdde4
+sweep tx: [redacted: demo transaction hash]
 receipt: data/receipts-caw-return/receipt-1781255328734-recovery_sweep.json
 ```
 

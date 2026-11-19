@@ -258,9 +258,9 @@ resource: https://api.nansen.ai/api/v1/smart-money/netflow
 status: 200
 price: 0.05 USDC
 network: eip155:8453
-payer: 0x93A0bB47Ac867322eaF0fAA22A796f45e2A8A9a7
+payer: [redacted: demo wallet address]
 payTo: 0x93053f1e7A5eFEDa532Fe69CbbE43cBEc3A0F13f
-paymentTx: 0x86377f36d2c9bfec23e79d3ed4041a1e38bd005c87f55c2a34fb925e09d896ba
+paymentTx: [redacted: demo transaction hash]
 responseHash: f9f2422677d9bc9678ca548c5d80723220cfa9ff428af6335ffd88b89957f022
 noteBalanceBeforeUsdc: 0.1
 noteBalanceAfterUsdc: 0.05
@@ -304,9 +304,9 @@ resource: https://api.nansen.ai/api/v1/smart-money/holdings
 status: 200
 price: 0.05 USDC
 network: eip155:8453
-payer: 0x730396fbAD3cc6b8C763BBc68B184782aA21E7d8
+payer: [redacted: demo wallet address]
 payTo: 0x93053f1e7A5eFEDa532Fe69CbbE43cBEc3A0F13f
-paymentTx: 0xff16e3cd099ef13c0f0017c107ea5abdd8d59cd2d94481a732c7cd74f9a6a9fa
+paymentTx: [redacted: demo transaction hash]
 responseHash: 17b5155a091b3a60794f39349d93932b635137d504263e9f69a1a4afebb41c94
 noteBalanceBeforeUsdc: 0.05
 noteBalanceAfterUsdc: 0

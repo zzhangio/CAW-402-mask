@@ -166,12 +166,12 @@ caw wallet balance --token-id BASE_USDC
 Funding result on 2026-06-11:
 
 ```text
-CAW EVM address: 0x8bf7aee000ccd484c7343346cd7666f52fde9e13
+CAW EVM address: [redacted: demo wallet address]
 Base USDC received: 0.12
 Base ETH received: 0.00003
 
-USDC tx: 0x2689856cee5fa9198b49d38dd949db21d6269a6849f76cee640ff9ec04974cb4
-ETH tx:  0x97939d3ed201f584b7c8015e76b2564dfde3c4652a548829e8dc27719ea6b9b3
+USDC tx: [redacted: demo transaction hash]
+ETH tx:  [redacted: demo transaction hash]
 ```
 
 ### 4. No-Spend Nansen Dry Run

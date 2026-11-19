@@ -9,7 +9,7 @@ caw v0.2.86
 ## Wallet
 
 ```text
-wallet_id: 7546a0eb-48b3-4388-8a88-fd71a3700b0d
+wallet_id: [redacted: demo wallet identifier]
 created_at: 2026-06-11T13:10:55Z
 ```
 
@@ -19,7 +19,7 @@ created_at: 2026-06-11T13:10:55Z
 
 ```json
 {
-  "address": "CTYBv9uhk3ukZaQhJ5NxMpSp2pNzkt9tHfyWPC7k64qk",
+  "address": "[redacted: demo wallet address]",
   "chain_type": "SOL",
   "compatible_chains": [
     "SOL",
@@ -32,7 +32,7 @@ created_at: 2026-06-11T13:10:55Z
 
 ```json
 {
-  "address": "0x8bf7aee000ccd484c7343346cd7666f52fde9e13",
+  "address": "[redacted: demo wallet address]",
   "chain_type": "ETH",
   "compatible_chains": [
     "SETH",
@@ -54,7 +54,7 @@ created_at: 2026-06-11T13:10:55Z
 For the current x402 market-data demo, the relevant CAW address is the EVM address:
 
 ```text
-0x8bf7aee000ccd484c7343346cd7666f52fde9e13
+[redacted: demo wallet address]
 ```
 
 This address supports `BASE_ETH`, which is the target chain for the CMC/Exa x402 Base USDC demo.
