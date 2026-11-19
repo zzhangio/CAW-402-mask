@@ -30,7 +30,7 @@ Mitigation:
 
 ```text
 Fixed in bin/privacy-adapter.js.
-The CLI now refuses empty passwords, the old public default, and passwords shorter than 12 chars.
+New local passwords are generated from 32 random bytes. Supplied passwords and saved passwords must be at least 12 characters and must differ from the old public default.
 px402-spike funded legacy scripts use the same rejection.
 ```
 
@@ -96,6 +96,8 @@ Current allowlist:
 cmc:     GET  https://pro-api.coinmarketcap.com/x402/v3/cryptocurrency/quotes/latest
 exa:     POST https://api.exa.ai/search
 weather: GET  https://httpay.xyz/api/weather
+nansen:  POST https://api.nansen.ai/api/v1/smart-money/{netflow,holdings,perp-trades}
+nansen:  POST https://api.nansen.ai/api/v1/tgm/flow-intelligence
 ```
 
 ### Spike Scripts Bypass Main Adapter
@@ -162,31 +164,23 @@ the note can be drained or recovery burners can be exposed through logs, prompts
 model output.
 ```
 
-Mitigation / product stance:
+New Windows note secret files use DPAPI bound to the current user. Unix-like systems create plaintext secret files with mode `0600` in a user-private directory when the directory is new. The default path is `data/secrets/px402-note-password.json`. Windows still reads legacy version-1 plaintext files. Supply the matching `PX402_NOTE_PASSWORD` and run `secrets:init --materialize-secret-file` to migrate such a file. The CLI publishes complete secret files atomically and refuses to generate a fresh password if it finds notes or recovery blobs in the configured directories.
 
-```text
-The agent should control spend policy through adapter commands, not by seeing raw secrets.
-Secrets belong in a local vault / OS keychain / managed secret store. The adapter receives a scoped
-runtime capability and performs decryption/signing internally.
+A same-account process can decrypt DPAPI records or read the Unix secret file. Account isolation, custody, and backup remain the operator’s responsibility. The environment override and secret file give access to the full note password.
 
-The hackathon CLI now auto-creates a local gitignored vault at:
-data/secrets/px402-note-password.json
+### CAW bridge and destinations
 
-PX402_NOTE_PASSWORD is only an optional external-secret override.
-```
+The rail runner permits only supported datasets, validates pact IDs from both the CLI and evidence files, and validates decimal amount and timeout arguments before queueing a job. Its Bash command quotes each argument as one literal. Keep write access to the executable bridge inbox and its results limited to trusted operators. CAW return and `--to-caw` recovery require a nonzero `CAW_EVM_ADDRESS`. Funding accepts that variable or an explicit `--to`.
 
-Minimum safety rules:
+### Run logs and callback
 
-```text
-- no password, decrypted note, or burner private key in stdout;
-- no secret values in receipts or run logs;
-- one vault entry per project or rail budget;
-- refuse to create a fresh secret if existing note files are present but no matching vault/env
-  secret can be found;
-- explicit rotation command for note-password migration;
-- encrypted recovery files written before any operation that could strand funds;
-- agent permissions limited by provider allowlist, per-call limit, and budget.
-```
+JSONL run logs record command and stage identifiers, run IDs, providers, dataset, status, price, booleans and timings. Use opaque run IDs. Requests, command arguments, error text, and stacks are excluded from these logs. The terminal, shell history, receipts, saved research responses and bridge artifacts have separate retention and exposure risks.
+
+Local Curvy onboarding binds to IPv4 loopback, restricts the Host and browser Origin, and accepts a single successful GET callback with a random 256-bit token that expires after five minutes. Direct browser navigation can omit Origin, so access to the private authentication URL confers callback access. The local wallet file contains signature material and inherits the directory's Windows ACL. The callback validates transport and JSON shape. Curvy's service and SDK supply the identity and signature semantics.
+
+### Dependency audit
+
+On 2026-11-19 the installed `px402-spike` lockfile reported 0 critical, 0 high, 0 moderate and 16 low findings under `npm audit`. The remaining findings propagate through `@prxvt/sdk → circomlibjs → ethers v5 → elliptic`. npm reported no fix for the underlying [elliptic advisory](https://github.com/advisories/GHSA-848j-6mx2-7j84). The lockfile updates viem and undici and overrides the old ws and underscore pins in their affected dependency branches.
 
 ## Remaining Production Gaps
 
@@ -196,7 +190,7 @@ No independent audit of PRXVT SDK public signal order.
 No prompt/IP privacy.
 No provider-side identity unlinkability.
 No merchant payTo pinning; provider payTo can rotate within an allowlisted resource.
-No production OS-keychain-backed secret vault or password rotation command yet.
+No dedicated signing service, account isolation or note-password rotation command yet.
 No automated spend-down policy for residual private-note balances yet.
 No packaged one-command installer yet.
 ```

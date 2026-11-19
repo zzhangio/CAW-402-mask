@@ -16,7 +16,11 @@
     "@prxvt/sdk": "^1.0.2",
     "dotenv": "^16.4.7",
     "snarkjs": "^0.7.6",
-    "undici": "^8.4.0",
-    "viem": "^2.52.2"
+    "undici": "^8.12.4",
+    "viem": "^2.58.1"
+  },
+  "overrides": {
+    "@ethersproject/providers": { "ws": "8.21.0" },
+    "jsonpath": { "underscore": "^1.13.8" }
   }
 }

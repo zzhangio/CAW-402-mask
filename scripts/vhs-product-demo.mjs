@@ -45,7 +45,7 @@ await command("npm run privacy -- secrets:init");
 await block([
   "{",
   '  "action": "secrets_init",',
-  '  "notePasswordSource": "local_secret_vault",',
+  '  "notePasswordSource": "plaintext_secret_file",',
   '  "noteSecretPath": "./data/secrets/px402-note-password.json",',
   '  "passwordPrinted": false',
   "}",

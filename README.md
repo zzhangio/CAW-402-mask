@@ -116,7 +116,11 @@ X402_CHAIN=base
 BASE_RPC_URL=https://mainnet.base.org
 ```
 
-Initialize the local note secret vault:
+Initialize the local note secret. Windows stores new secrets using current-user DPAPI. On other platforms the CLI creates a plaintext password file with owner-only permissions. The default path is `data/secrets/px402-note-password.json`. Legacy version-1 files remain readable. See [secret storage and migration](PRIVACY_ADAPTER_CLI.md#user-setup) before moving notes between accounts.
+
+Set `CAW_EVM_ADDRESS` explicitly before running CAW return or recovery. The funding script also accepts `--to`. For an ordinary research payment, only the disposable wallet is needed.
+
+Initialize once with
 
 ```bash
 npm run privacy -- secrets:init

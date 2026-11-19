@@ -34,7 +34,9 @@ function parseArgs(argv) {
       out._.push(item);
       continue;
     }
-    const [rawKey, rawValue] = item.slice(2).split("=", 2);
+    const splitAt = item.indexOf("=");
+    const rawKey = item.slice(2, splitAt < 0 ? undefined : splitAt);
+    const rawValue = splitAt < 0 ? undefined : item.slice(splitAt + 1);
     const key = rawKey.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
     if (rawValue !== undefined) out[key] = rawValue;
     else if (argv[i + 1] && !argv[i + 1].startsWith("--")) out[key] = argv[++i];
@@ -85,6 +87,36 @@ function toWslPath(windowsPath) {
   const drive = resolved[0].toLowerCase();
   const rest = resolved.slice(2).replace(/\\/g, "/");
   return `/mnt/${drive}${rest}`;
+}
+
+function shellLiteral(value) {
+  return "'" + value.replaceAll("'", "'\\''") + "'";
+}
+
+function positiveInteger(value, option, max) {
+  if (typeof value !== "string" || !/^[1-9][0-9]*$/.test(value) ||
+      !Number.isSafeInteger(Number(value)) || Number(value) > max) {
+    throw new Error(`Invalid --${option}. Expected an integer between 1 and ${max}.`);
+  }
+  return value;
+}
+
+function resolvePactId(option) {
+  let id = option;
+  if (id === undefined) {
+    for (const folder of ["caw-evidence-redacted", "caw-evidence"]) {
+      const file = path.join(workspaceRoot, "hackathon", folder, "pact-id.txt");
+      if (fs.existsSync(file)) {
+        id = fs.readFileSync(file, "utf8").trim();
+        break;
+      }
+    }
+    if (!id) return null;
+  }
+  if (typeof id !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/.test(id)) {
+    throw new Error("Invalid pact ID.");
+  }
+  return id;
 }
 
 function classifyOutput({ rail, exitCode, stdout = "", stderr = "" }) {
@@ -238,6 +270,11 @@ function parseDoneMarker(file) {
 
 async function runCaw({ dataset, dryRun, timeoutMs, pactId, maxAmount, cawTimeout }) {
   const selected = NANSEN[dataset];
+  const id = resolvePactId(pactId);
+  if (id === null) return { exitCode: 2, stdout: "", stderr: "No pact id found.", elapsedMs: 0 };
+  const flags = ["--timeout", cawTimeout, "--protocol", "x402", "--network", "eip155:8453",
+    "--asset", BASE_USDC, "--max-amount", maxAmount, "--output", "full"];
+  if (dryRun) flags.push("--dry-run");
   const dirs = bridgeDirs();
   ensureDir(dirs.inbox);
   ensureDir(dirs.done);
@@ -247,32 +284,17 @@ async function runCaw({ dataset, dryRun, timeoutMs, pactId, maxAmount, cawTimeou
   const jobPath = path.join(dirs.inbox, `${jobName}.sh`);
   const tmpJobPath = path.join(dirs.inbox, `${jobName}.tmp`);
   const rootWsl = toWslPath(workspaceRoot);
-  const dryRunFlag = dryRun ? " --dry-run" : "";
-  const pactLine = pactId
-    ? `PACT_ID=${JSON.stringify(pactId)}`
-    : `PACT_ID="$(cat hackathon/caw-evidence-redacted/pact-id.txt 2>/dev/null || cat hackathon/caw-evidence/pact-id.txt 2>/dev/null || true)"`;
   const script = `#!/usr/bin/env bash
-set -u
-cd ${JSON.stringify(rootWsl)} || exit 1
+set -eu
+cd -- ${shellLiteral(rootWsl)}
 export PATH="$HOME/.cobo-agentic-wallet/bin:$HOME/.local/bin:$PATH"
-${pactLine}
-if [ -z "$PACT_ID" ]; then
-  echo "No pact id found"
-  exit 2
-fi
 echo "rail=caw-native"
-echo "dataset=${dataset}"
-echo "url=${selected.url}"
-caw fetch "$PACT_ID" ${JSON.stringify(selected.url)} \\
-  --timeout ${cawTimeout} \\
-  --protocol x402 \\
-  --network eip155:8453 \\
-  --asset ${BASE_USDC} \\
-  --max-amount ${maxAmount} \\
-  --json "$(cat hackathon/${selected.bodyFile})" \\
-  --output full${dryRunFlag}
+echo ${shellLiteral("dataset=" + dataset)}
+echo ${shellLiteral("url=" + selected.url)}
+body="$(cat -- ${shellLiteral("hackathon/" + selected.bodyFile)})"
+exec caw fetch ${[id, selected.url, ...flags].map(shellLiteral).join(" ")} --json "$body"
 `;
-  fs.writeFileSync(tmpJobPath, script.replace(/\r\n/g, "\n"));
+  fs.writeFileSync(tmpJobPath, script.replace(/\r\n/g, "\n"), { flag: "wx", mode: 0o600 });
   fs.renameSync(tmpJobPath, jobPath);
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
@@ -307,13 +329,13 @@ async function main() {
   const dataset = String(args.dataset || "netflow");
   const dryRun = Boolean(args.dryRun);
   const selected = NANSEN[dataset];
-  if (!selected) throw new Error(`Unknown dataset ${dataset}. Use netflow, holdings, or perp-trades.`);
+  if (!Object.hasOwn(NANSEN, dataset)) throw new Error("Unknown dataset. Use netflow, holdings, or perp-trades.");
   if (!["px402-private", "caw-native"].includes(rail)) throw new Error("Use --rail px402-private or --rail caw-native.");
 
   const runId = `${new Date().toISOString().replace(/[-:.]/g, "").replace("T", "-").slice(0, 16)}-${rail}-${dataset}`;
   const outputDir = path.join(rootDir, "data", "rail-runs");
   const startedAt = new Date().toISOString();
-  const maxAmount = String(args.maxAmount || "60000");
+  const maxAmount = positiveInteger(args.maxAmount ?? "60000", "max-amount", Number.MAX_SAFE_INTEGER);
   const maxUsdPerCall = args.maxUsdPerCall || "0.06";
 
   const result = rail === "px402-private"
@@ -323,8 +345,8 @@ async function main() {
         dryRun,
         pactId: args.pactId,
         maxAmount,
-        cawTimeout: String(args.cawTimeout || "90"),
-        timeoutMs: Number(args.timeoutMs || 180_000),
+        cawTimeout: positiveInteger(args.cawTimeout ?? "90", "caw-timeout", 86_400),
+        timeoutMs: Number(positiveInteger(args.timeoutMs ?? "180000", "timeout-ms", 86_400_000)),
       });
 
   const parsedStdout = extractJsonObject(result.stdout);

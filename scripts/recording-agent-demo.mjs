@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -7,8 +8,8 @@ const isWin = process.platform === "win32";
 
 const demoEnv = {
   ...process.env,
-  // Public demo-only key. It is intentionally unfunded and used only for dry-run recording.
-  PRIVATE_KEY: "0x0000000000000000000000000000000000000000000000000000000000000001",
+  // Ephemeral unfunded account for the no-spend recording.
+  PRIVATE_KEY: "0x" + randomBytes(32).toString("hex"),
   X402_CHAIN: "base",
   BASE_RPC_URL: process.env.BASE_RPC_URL || "https://mainnet.base.org",
   MAX_USD_PER_CALL: "0.06",
@@ -25,7 +26,7 @@ delete demoEnv.PX402_NOTE_PASSWORD;
 
 const steps = [
   {
-    title: "Agent creates or opens the local note secret vault",
+    title: "Agent creates or opens the local note secret file",
     args: ["./bin/privacy-adapter.js", "secrets:init", "--note-dir", "data/recording-notes"],
   },
   {
@@ -96,6 +97,10 @@ for (let index = 0; index < steps.length; index += 1) {
       "return:caw creates a public burner-to-CAW link.",
       "Execution requires explicit acknowledgement: --ack-return-link",
     ]);
+    if (!demoEnv.CAW_EVM_ADDRESS) {
+      console.log("Set CAW_EVM_ADDRESS in the recording environment to preview a return destination.");
+      continue;
+    }
   }
   await runStep(steps[index], index);
 }

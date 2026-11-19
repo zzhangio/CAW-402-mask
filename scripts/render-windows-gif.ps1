@@ -106,12 +106,12 @@ Add-Frame "Required local configuration" @(
   "PX402_NOTE_SECRET_FILE=./data/secrets/px402-note-password.json"
 ) 4
 
-Add-Frame "Local note secret vault" @(
+Add-Frame "Local note secret file" @(
   "",
   "agent$ npm run privacy -- secrets:init",
   "{",
   '  "action": "secrets_init",',
-  '  "notePasswordSource": "local_secret_vault",',
+  '  "notePasswordSource": "windows_dpapi",',
   '  "noteSecretPath": "./data/secrets/px402-note-password.json",',
   '  "passwordPrinted": false',
   "}"

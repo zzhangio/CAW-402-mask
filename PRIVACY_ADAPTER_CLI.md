@@ -32,24 +32,9 @@ X402_CHAIN=base
 ```
 
 `PX402_NOTE_PASSWORD` is not required for normal onboarding. If it is absent, the adapter creates a
-project-local secret vault:
+project-local secret file at `data/secrets/px402-note-password.json`. Windows protects new secrets with current-user DPAPI. Other platforms create a plaintext password file with mode `0600`. Keep it on a private filesystem. A process with your account's access can use the secret. Keep a separately protected recovery copy of the password before moving machines or changing accounts. An external secret manager can instead supply `PX402_NOTE_PASSWORD` at runtime.
 
-```text
-data/secrets/px402-note-password.json
-```
-
-The vault file is gitignored and the password is never printed. `PX402_NOTE_PASSWORD` remains an
-optional override for users who intentionally want external secret management.
-
-Security model:
-
-```text
-The agent may invoke adapter commands, but it should not read or print note secrets.
-The adapter process decrypts notes and recovery files internally.
-```
-
-For the current hackathon CLI this vault is a local gitignored JSON file. The product target is an
-OS keychain or managed password-box backend with the same permission boundary.
+The CLI reads existing version-1 plaintext files. On Windows, set `PX402_NOTE_PASSWORD` to the **same** password and run `secrets:init --materialize-secret-file` to replace the plaintext record with DPAPI ciphertext. This preserves the existing note and recovery keys. Secure existing copies and backups of the old file separately.
 
 For real-spend hackathon runs, acknowledge the current PRXVT SDK circuit limitation:
 
@@ -83,15 +68,15 @@ can use 0x Gasless to buy dust ETH with USDC.
 
 ```text
 npm run privacy -- secrets:init
-npm run privacy -- secrets:init --materialize-vault
+npm run privacy -- secrets:init --materialize-secret-file
 npm run privacy -- doctor
 ```
 
-`secrets:init` creates or checks the local note secret vault. It does not require a wallet private
+`secrets:init` creates or checks the local note secret file. It does not require a wallet private
 key, does not print the password, and does not spend.
 
-`secrets:init --materialize-vault` copies an already configured `PX402_NOTE_PASSWORD` into the
-local vault without printing it. It refuses to overwrite a different existing vault secret unless
+`secrets:init --materialize-secret-file` copies an already configured `PX402_NOTE_PASSWORD` into the
+local secret file without printing it. The older `--materialize-vault` spelling remains an alias. It refuses to overwrite a different existing secret unless
 `--force` is passed.
 
 `doctor` checks env, wallet balances, note state, secret source, and budget state. Does not spend.
@@ -166,8 +151,7 @@ npm run privacy -- return:caw --execute --ack-return-link
 npm run privacy -- recover:sweep --file data/recovery-caw-return/recovery-....json --to-caw --execute
 ```
 
-This returns residual px402 note funds to the CAW Base address. It is for fund recovery and
-accounting. It is not the most private default, because the final burner-to-CAW sweep is public.
+Set `CAW_EVM_ADDRESS` to the intended nonzero Base address before running either CAW command. This returns residual px402 note funds to that address. Use this for fund recovery and accounting. The final burner-to-CAW sweep is public.
 
 Warning behavior:
 
@@ -213,7 +197,7 @@ data/responses
 data/recovery
 ```
 
-Notes are encrypted with the local secret vault or the optional `PX402_NOTE_PASSWORD` override.
+Notes are encrypted with the password in the local secret file or the optional `PX402_NOTE_PASSWORD` override.
 Receipts include provider, endpoint metadata, price, request/response hashes, note balance
 before/after, and payment references. Paid response bodies are stored in `data/responses` for demo
 inspection and signal parsing.

@@ -46,7 +46,7 @@ assets/slides/caw-402-mask-core-line.png
 The script simulates an agent calling the product:
 
 ```text
-1. Agent creates or opens the local note secret vault.
+1. Agent creates or opens the local note secret file.
 2. Agent checks wallet, note state, policy, and budget.
 3. Agent asks Nansen for an x402 price without spending.
 4. Agent asks whether residual funds should be returned to CAW and sees the warning.
@@ -91,7 +91,7 @@ That scripted output shows:
 
 ```text
 required local config
-local note secret vault
+local note secret file
 budget/policy check
 Nansen x402 quote
 return:caw privacy warning
@@ -104,7 +104,7 @@ Use these if you want to type each command yourself.
 PowerShell setup for a safe demo session:
 
 ```powershell
-$env:PRIVATE_KEY="0x0000000000000000000000000000000000000000000000000000000000000001"
+$env:PRIVATE_KEY = node -e "process.stdout.write('0x' + require('node:crypto').randomBytes(32).toString('hex'))"
 $env:X402_CHAIN="base"
 $env:BASE_RPC_URL="https://mainnet.base.org"
 $env:MAX_USD_PER_CALL="0.06"
@@ -116,6 +116,8 @@ $env:RUN_LOG_DIR="./data/recording-run-logs"
 $env:PX402_NOTE_SECRET_FILE="./data/recording-secrets/px402-note-password.json"
 Remove-Item Env:PX402_NOTE_PASSWORD -ErrorAction SilentlyContinue
 ```
+
+Set `CAW_EVM_ADDRESS` to your intended Base address to include the optional return preview. The automated recording skips that preview when the environment variable is empty.
 
 Commands to type:
 
@@ -130,7 +132,7 @@ npm run privacy -- return:caw
 
 ```text
 We start from a local agent. The agent does not see note passwords or recovery keys.
-The adapter creates a local secret vault and keeps encrypted note state on the user's machine.
+The adapter creates a local secret file and keeps encrypted note state on the user's machine.
 
 Next the agent checks policy and budget. This is a low-value working budget, not a savings wallet.
 

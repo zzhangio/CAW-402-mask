@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import crypto from "node:crypto";
+import { readSecretFile, writeSecretFile } from "./note-secret-file.js";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -50,10 +51,8 @@ function setupFetchTimeouts() {
 
 const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const NATIVE_ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-const DEFAULT_CAW_EVM_ADDRESS = "0x8bf7aee000ccd484c7343346cd7666f52fde9e13";
 const ALLOWED_DEPOSITS = [0.01, 0.1, 1, 10, 100];
 const DEFAULT_NOTE_PASSWORD = "local-dev-password-change-me";
-const LOCAL_NOTE_SECRET_VERSION = 1;
 const REMOTE_CIRCUITS_ACK = "I_UNDERSTAND_UNPINNED_REMOTE_CIRCUITS";
 const DEFAULT_CMC_URL = "https://pro-api.coinmarketcap.com/x402/v3/cryptocurrency/quotes/latest";
 const DEFAULT_EXA_URL = "https://api.exa.ai/search";
@@ -184,6 +183,15 @@ function safeFileSegment(value) {
   return String(value || "run").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "run";
 }
 
+const knownCommands = new Set(["secrets:init", "doctor", "prepare", "market", "summarize", "recover:list", "recover:sweep", "return:caw", "smoke:weather", "nansen"]);
+
+function suppliedRunId(args) {
+  const id = process.env.RUN_ID || args.runId;
+  if (id === undefined) return null;
+  if (typeof id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,100}$/.test(id)) throw new Error("Invalid run ID.");
+  return id;
+}
+
 function newRunId(command = "run") {
   return `${new Date().toISOString().replace(/[-:.]/g, "").replace("T", "-").slice(0, 16)}-${safeFileSegment(command)}-${crypto.randomBytes(4).toString("hex")}`;
 }
@@ -202,8 +210,11 @@ function appendRunLog(cfg, event) {
   const entry = {
     at: new Date().toISOString(),
     runId: cfg.runId,
-    ...event,
+    event: event.event,
   };
+  for (const key of ["command", "stage", "provider", "dataset", "dryRun", "execute", "ok", "status", "paid", "elapsedMs", "priceUsdc"]) {
+    if (event[key] !== undefined) entry[key] = event[key];
+  }
   fs.appendFileSync(cfg.runLogPath, `${JSON.stringify(entry, (_, item) => typeof item === "bigint" ? item.toString() : item)}\n`);
 }
 
@@ -220,7 +231,6 @@ async function timedStage(cfg, stage, fn, meta = {}) {
       stage,
       elapsedMs: Date.now() - startedAt,
       ok: false,
-      error: { name: error.name, message: error.message, stack: error.stack },
     });
     throw error;
   }
@@ -278,58 +288,24 @@ function hasNoteFiles(noteDir) {
   return fs.readdirSync(noteDir).some((name) => name.endsWith(".json") && name.includes("px402-note"));
 }
 
-function noteSecretVaultPath() {
+function noteSecretFilePath() {
   const requested = process.env.PX402_NOTE_SECRET_FILE || process.env.PX402_SECRET_FILE;
   return path.resolve(rootDir, requested || "data/secrets/px402-note-password.json");
 }
 
-function writeLocalNoteSecret(file, password, overwrite = false) {
-  if (fs.existsSync(file) && !overwrite) {
-    const stored = JSON.parse(fs.readFileSync(file, "utf8"));
-    const existing = validateNotePassword(stored.password, "local note secret");
-    if (existing !== password) {
-      throw new Error(`Local note secret vault already exists with a different secret: ${file}`);
-    }
-    return false;
-  }
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify({
-    version: LOCAL_NOTE_SECRET_VERSION,
-    createdAt: new Date().toISOString(),
-    purpose: "encrypt_local_px402_notes_and_recovery_files",
-    password,
-  }, null, 2), { mode: 0o600 });
-  try {
-    fs.chmodSync(file, 0o600);
-  } catch {}
-  return true;
-}
-
 function readOrCreateLocalNotePassword(noteDir) {
-  const file = noteSecretVaultPath();
-  if (fs.existsSync(file)) {
-    const stored = JSON.parse(fs.readFileSync(file, "utf8"));
-    if (stored.version !== LOCAL_NOTE_SECRET_VERSION) {
-      throw new Error(`Unsupported local note secret version: ${stored.version}`);
+  const file = noteSecretFilePath();
+  let created = false;
+  if (!fs.existsSync(file)) {
+    const recoveryDir = path.resolve(rootDir, process.env.RECOVERY_DIR || "data/recovery");
+    const hasRecovery = fs.existsSync(recoveryDir) && fs.readdirSync(recoveryDir).some(name => /^recovery-.*\.json$/.test(name));
+    if (hasNoteFiles(noteDir) || hasRecovery) {
+      throw new Error("Existing notes or recovery files need their original note secret. Restore the matching secret file or set PX402_NOTE_PASSWORD.");
     }
-    return {
-      password: validateNotePassword(stored.password, "local note secret"),
-      source: "local_secret_vault",
-      path: file,
-      created: false,
-    };
+    created = writeSecretFile(file, crypto.randomBytes(32).toString("base64url"));
   }
-  if (hasNoteFiles(noteDir)) {
-    throw new Error(`PX402 note files exist in ${noteDir}, but no PX402_NOTE_PASSWORD or local secret vault was found. Refusing to create a new password that cannot decrypt existing notes.`);
-  }
-  const password = crypto.randomBytes(32).toString("base64url");
-  writeLocalNoteSecret(file, password, false);
-  return {
-    password,
-    source: "local_secret_vault",
-    path: file,
-    created: true,
-  };
+  const secret = readSecretFile(file);
+  return { password: validateNotePassword(secret.password, "local note secret"), source: secret.source, path: file, created };
 }
 
 function requiredNotePassword(noteDir) {
@@ -353,7 +329,7 @@ function config(args = {}) {
   const responseDir = path.resolve(rootDir, process.env.RESPONSE_DIR || "data/responses");
   const noteSecret = requiredNotePassword(noteDir);
   const command = args._?.[0] || "doctor";
-  const runId = process.env.RUN_ID || args.runId || newRunId(command);
+  const runId = suppliedRunId(args) || newRunId(command);
   const logDir = path.resolve(rootDir, process.env.RUN_LOG_DIR || "data/run-logs");
   return {
     args,
@@ -372,7 +348,8 @@ function config(args = {}) {
     receiptDir,
     responseDir,
     recoveryDir: path.resolve(rootDir, process.env.RECOVERY_DIR || "data/recovery"),
-    cawEvmAddress: process.env.CAW_EVM_ADDRESS || DEFAULT_CAW_EVM_ADDRESS,
+    cawEvmAddress: command === "return:caw" || (command === "recover:sweep" && args.toCaw)
+      ? requireCawAddress(process.env.CAW_EVM_ADDRESS) : null,
     maxUsdPerCall: numberEnv("MAX_USD_PER_CALL", 0.02),
     monthlyBudgetUsd: numberEnv("MONTHLY_BUDGET_USD", 20),
     minBaseEthBuffer: process.env.MIN_BASE_ETH_BUFFER || "0.00005",
@@ -382,6 +359,13 @@ function config(args = {}) {
     exaQuery: args.query || process.env.EXA_QUERY || "Ethereum market structure and Base ecosystem catalyst",
     exaNumResults: Number(args.numResults || process.env.EXA_NUM_RESULTS || 3),
   };
+}
+
+function requireCawAddress(value) {
+  if (!value || !viem().isAddress(value) || value.toLowerCase() === viem().zeroAddress) {
+    throw new Error("Set CAW_EVM_ADDRESS to the intended nonzero Base destination.");
+  }
+  return viem().getAddress(value);
 }
 
 function publicClient(cfg) {
@@ -832,9 +816,6 @@ async function privateX402Call(cfg, provider, input, init = {}, dryRun = false) 
     event: "x402_call_start",
     provider,
     dryRun,
-    input: String(input),
-    method: requestMethod(init),
-    requestHash: sha256(JSON.stringify({ input: String(input), init: { ...init, headers: init.headers || {} } })),
   });
   await timedStage(cfg, "policy_precheck", async () => {
     assertBaseOnlyConfig();
@@ -1223,15 +1204,20 @@ async function commandDoctor(cfg) {
 
 function commandSecretsInit(args) {
   const noteDir = path.resolve(rootDir, args.noteDir || process.env.NOTE_DIR || process.env.PX402_NOTE_DIR || "data/notes");
-  if (args.materializeVault) {
+  if (args.materializeSecretFile || args.materializeVault) {
     const password = validateNotePassword(process.env.PX402_NOTE_PASSWORD, "PX402_NOTE_PASSWORD");
-    const file = noteSecretVaultPath();
-    const created = writeLocalNoteSecret(file, password, Boolean(args.force));
+    const file = noteSecretFilePath();
+    const existing = fs.existsSync(file) ? readSecretFile(file) : null;
+    if (existing && existing.password !== password && !args.force) throw new Error("A different note secret already exists.");
+    const migrate = existing?.source === "plaintext_secret_file" && process.platform === "win32";
+    const created = !existing || args.force || migrate ? writeSecretFile(file, password, Boolean(existing)) : false;
+    const saved = readSecretFile(file);
+    if (saved.password !== password) throw new Error("A different note secret was created concurrently.");
     printJson({
       action: "secrets_init",
-      mode: "materialize_vault",
+      mode: "materialize_secret_file",
       noteDir,
-      notePasswordSource: "local_secret_vault",
+      notePasswordSource: saved.source,
       noteSecretPath: file,
       noteSecretCreated: created,
       passwordPrinted: false,
@@ -1563,7 +1549,7 @@ async function commandNansen(cfg, args) {
     "perp-trades": { provider: "nansen_perp_trades", request: nansenPerpTradesRequest() },
   };
   const selected = datasets[dataset];
-  if (!selected) throw new Error(`Unknown Nansen dataset: ${dataset}. Use netflow, holdings, or perp-trades.`);
+  if (!Object.hasOwn(datasets, dataset)) throw new Error(`Unknown Nansen dataset: ${dataset}. Use netflow, holdings, or perp-trades.`);
   appendRunLog(cfg, { event: "command_nansen_start", dataset, dryRun, provider: selected.provider });
   const probe = await timedStage(cfg, "nansen_initial_probe", () => probePayment(selected.request.input, selected.request.init), { dataset, provider: selected.provider });
   const requiredUsdc = (probe?.accept?.priceUsdc || 0) + numberEnv("PAYMENT_NOTE_BUFFER_USD", 0.003);
@@ -1612,7 +1598,7 @@ function sleep(ms) {
 function usage() {
   console.log(`Usage:
   npm run privacy -- secrets:init [--note-dir data/notes]
-  npm run privacy -- secrets:init --materialize-vault
+  npm run privacy -- secrets:init --materialize-secret-file
   npm run privacy -- doctor
   npm run privacy -- prepare [--dry-run]
   npm run demo:market -- --symbol ETH --query "Ethereum market structure" [--dry-run]
@@ -1628,23 +1614,18 @@ function usage() {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const command = args._[0] || "doctor";
-  if (command === "help" || command === "--help") {
+  if (command === "help" || command === "--help" || args.help || args.h) {
     usage();
     return;
   }
   if (command === "secrets:init") return commandSecretsInit(args);
+  if (!knownCommands.has(command)) throw new Error("Unknown command. Run help for available commands.");
   const cfg = config(args);
   appendRunLog(cfg, {
     event: "command_start",
     command,
-    args: { ...args, _: args._ },
-    dirs: {
-      noteDir: relativeOrValue(cfg.noteDir),
-      receiptDir: relativeOrValue(cfg.receiptDir),
-      responseDir: relativeOrValue(cfg.responseDir),
-      recoveryDir: relativeOrValue(cfg.recoveryDir),
-      runLogPath: relativeOrValue(cfg.runLogPath),
-    },
+    dryRun: Boolean(args.dryRun),
+    execute: Boolean(args.execute),
   });
   if (command === "doctor") return commandDoctor(cfg);
   if (command === "prepare") return commandPrepare(cfg, args);
@@ -1661,13 +1642,12 @@ async function main() {
 main().catch((error) => {
   try {
     const args = parseArgs(process.argv.slice(2));
-    const command = args._?.[0] || "unknown";
-    const runId = process.env.RUN_ID || args.runId || "startup-error";
+    const command = knownCommands.has(args._[0]) ? args._[0] : "unknown";
+    const runId = suppliedRunId(args) || "startup-error";
     const logDir = path.resolve(rootDir, process.env.RUN_LOG_DIR || "data/run-logs");
     appendRunLog({ runId, runLogPath: path.join(logDir, `${safeFileSegment(runId)}.jsonl`) }, {
       event: "command_error",
       command,
-      error: { name: error.name, message: error.message, stack: error.stack },
     });
   } catch {}
   printError({ action: "error", message: error.message });

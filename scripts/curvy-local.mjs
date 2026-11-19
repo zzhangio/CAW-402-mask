@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { runLocalAuth } from "./curvy-auth-server.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { input, select } from "@inquirer/prompts";
@@ -22,8 +23,7 @@ function walletExists() {
 async function ensureWallet() {
   if (walletExists()) return;
   console.log(`No local Curvy wallet found at ${walletPath}. Starting onboarding.`);
-  const { runAuthFlow } = await getCurvyLib();
-  await runAuthFlow(walletPath);
+  await runLocalAuth(walletPath);
 }
 
 async function loadSdk() {
@@ -39,8 +39,7 @@ async function onboard() {
     console.log("Move or delete it manually if you intentionally want to replace it.");
     return;
   }
-  const { runAuthFlow } = await getCurvyLib();
-  await runAuthFlow(walletPath);
+  await runLocalAuth(walletPath);
   console.log(`Onboarding complete. Local wallet saved at ${walletPath}`);
 }
 

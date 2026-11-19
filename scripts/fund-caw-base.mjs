@@ -7,7 +7,6 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const spikeRequire = createRequire(new URL("../px402-spike/package.json", import.meta.url));
 
 const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-const DEFAULT_CAW_EVM = "0x8bf7aee000ccd484c7343346cd7666f52fde9e13";
 
 function loadDotEnv(file) {
   if (!fs.existsSync(file)) return;
@@ -47,15 +46,17 @@ function roundTripPrintable(value) {
 loadDotEnv(path.join(rootDir, ".env"));
 
 const execute = process.argv.includes("--execute");
-const to = arg("to", process.env.CAW_EVM_ADDRESS || DEFAULT_CAW_EVM);
+const to = arg("to", process.env.CAW_EVM_ADDRESS);
+if (!to) throw new Error("Supply --to or set CAW_EVM_ADDRESS to the intended nonzero Base destination.");
 const usdcAmount = arg("usdc", process.env.CAW_FUND_USDC || "0.12");
 const ethAmount = arg("eth", process.env.CAW_FUND_ETH || "0.00003");
 const rpcUrl = process.env.BASE_RPC_URL || "https://mainnet.base.org";
 
-const { createPublicClient, createWalletClient, http, parseEther, parseUnits, formatEther, formatUnits, erc20Abi } = spikeRequire("viem");
+const { createPublicClient, createWalletClient, http, parseEther, parseUnits, formatEther, formatUnits, erc20Abi, isAddress, zeroAddress } = spikeRequire("viem");
 const { privateKeyToAccount } = spikeRequire("viem/accounts");
 const { base } = spikeRequire("viem/chains");
 
+if (!isAddress(to) || to.toLowerCase() === zeroAddress) throw new Error("Expected a nonzero Base destination address.");
 const account = privateKeyToAccount(normalizePrivateKey(process.env.PRIVATE_KEY || process.env.PX402_PRIVATE_KEY));
 const publicClient = createPublicClient({ chain: base, transport: http(rpcUrl) });
 const walletClient = createWalletClient({ account, chain: base, transport: http(rpcUrl) });
